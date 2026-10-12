@@ -1,0 +1,44 @@
+// ============================================================
+// wdt_disable_riscv.br
+// مكتبة تعطيل الـ Watchdogs — ESP32-C3 Super Mini (RISC-V)
+// مستخلصة حرفيًا من WDT-FULL_LED_TEMPLATE.br، بعد فصل منطق
+// الـ LED/GPIO بالكامل. تحتوي فقط على عناوين ومنطق تعطيل
+// الـ Watchdogs الثلاثة المستخدمة في القالب الأصلي:
+//   - RTC Watchdog (RWDT)
+//   - Super Watchdog (SWD)
+//   - Timer Group 0 Watchdog (MWDT0)
+//
+// الاستخدام: الصق الملف ده في أول أي برنامج BedRock جديد،
+// وادعي fn واحدة قبل أي منطق تاني في main():
+//
+//     wdt_disable_all();
+// ============================================================
+
+root RTC_WDTCONFIG0    = 0x60008090;
+root RTC_WDTFEED       = 0x600080A4;
+root RTC_WDTWPROTECT   = 0x600080A8;
+root RTC_SWD_CONF       = 0x600080AC;
+root RTC_SWD_WPROTECT   = 0x600080B0;
+
+root TIMG0_WDTCONFIG0  = 0x6001F048;
+root TIMG0_WDTFEED     = 0x6001F060;
+root TIMG0_WDTWPROTECT = 0x6001F064;
+
+root WDT_KEY           = 0x50D83AA1;
+root SWD_KEY           = 0x8F1D312A;
+
+fn wdt_disable_all() {
+    // RTC Watchdog
+    poke(RTC_WDTWPROTECT, WDT_KEY);
+    poke(RTC_WDTFEED, 1);
+    poke(RTC_WDTCONFIG0, 0);
+
+    // Timer Group 0 Watchdog
+    poke(TIMG0_WDTWPROTECT, WDT_KEY);
+    poke(TIMG0_WDTFEED, 1);
+    poke(TIMG0_WDTCONFIG0, 0);
+
+    // Super Watchdog — مفتاحه مختلف تمامًا عن الباقي
+    poke(RTC_SWD_WPROTECT, SWD_KEY);
+    poke(RTC_SWD_CONF, 0x60000000);
+}
